@@ -4,5 +4,5 @@ CREATE TABLE `guestbook` (
   `content` varchar(255) DEFAULT '',
   `posttime` datetime NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
