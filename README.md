@@ -1,2 +1,2 @@
 # guestbook
-test go app
+my first test go app
