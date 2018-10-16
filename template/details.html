@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>GO留言板</title>
+    </head>
+<body>
+    {{with .Author}}<b>{{.|html}}</b>{{else}}匿名{{end}}
+    于 <em>{{.PostDate.Format "2006-01-02 15:04:05"}}</em>
+    <blockquote>{{.Content|html}}</blockquote>
+</body>
+</html>

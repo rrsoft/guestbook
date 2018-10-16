@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>GO留言板</title>
+        <style>pre{white-space: pre-wrap;font-size:1.2em;}</style>
+    </head>
+<body>
+    {{range .}}
+    {{with .Author}}<b>{{.|html}}</b>{{else}}匿名{{end}}
+    于 <em>{{.PostDate.Format "2006-01-02 15:04:05"}}</em> -- <a href="/details/{{.Id}}">查看</a> -- <a href="/delete/{{.Id}}">删除</a>
+    <pre>{{.Content|html}}</pre>
+    {{end}}
+    <form action="/sign" method="post">
+        <div>留言：<textarea id="content" name="content" rows="3" cols="60"></textarea></div>
+        <div>姓名：<input id="author" name="author" type="text" />&nbsp;
+        <input type="submit" name="submit" value="Sign Guestbook" /></div>
+    </form>
+</body>
+</html>
