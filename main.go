@@ -4,16 +4,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/rrsoft/guestbook/core"
 	"github.com/rrsoft/guestbook/data"
+	"github.com/rrsoft/guestbook/web"
 )
 
 func main() {
 	defer data.Close()
-	http.HandleFunc("/", core.HandleMainPage)
-	http.HandleFunc("/sign", core.HandleSign)
-	http.HandleFunc("/details/", core.HandleDetails)
-	http.HandleFunc("/delete/", core.HandleDelete)
+	http.HandleFunc("/", web.HandleMainPage)
+	http.HandleFunc("/sign", web.HandleSign)
+	http.HandleFunc("/details/", web.HandleDetails)
+	http.HandleFunc("/delete/", web.HandleDelete)
 	err := http.ListenAndServe(":7000", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

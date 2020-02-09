@@ -1,146 +1,107 @@
-// Copyright 2013 Rcsoft. All rights reserved.
 package core
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
-	"text/template"
+	"errors"
 	"time"
 
-	"github.com/rrsoft/guestbook/data/book"
-	"github.com/rrsoft/guestbook/logger"
-	"github.com/rrsoft/guestbook/utils"
+	"github.com/rrsoft/guestbook/data"
 )
 
-func serve404(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte("Not Found"))
+type Greeting struct {
+	Id       int
+	Author   string
+	Content  string
+	PostDate time.Time
 }
 
-func serveError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(err.Error()))
-}
+var (
+	SELECT_GUESTBOOK_LIST  = "SELECT * FROM `guestbook` ORDER BY `id` DESC LIMIT ?,?"
+	SELECT_DETAILS         = "SELECT * FROM `guestbook` WHERE `id`=?"
+	SELECT_COUNT_GUESTBOOK = "SELECT COUNT(*) FROM `guestbook`"
+	INSERT_GUESTBOOK       = "INSERT INTO `guestbook` VALUES (null, ?, ?, ?)"
+	DELETE_GUESTBOOK       = "DELETE FROM `guestbook` WHERE `id`=?"
+)
 
-func loadPage(title string) (*template.Template, error) {
-	filename := "template/" + title + ".html"
-	return template.ParseFiles(filename)
-	/*body, err := ioutil.ReadFile(filename)
+func GetList(page, size int) ([]*Greeting, error) {
+	rows, err := data.Query(data.AppStting.DSNUser, SELECT_GUESTBOOK_LIST, page*size, size)
 	if err != nil {
 		return nil, err
 	}
-	return template.Must(template.New(title).Parse(body))*/
+	defer rows.Close()
+	var res []*Greeting
+	for rows.Next() {
+		var g = new(Greeting)
+		if e := rows.Scan(&g.Id, &g.Author, &g.Content, &g.PostDate); e != nil {
+			return nil, e
+		}
+		res = append(res, g)
+	}
+	return res, nil
 }
 
-func HandleMainPage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
-		return
+func GetDetails(id int) (*Greeting, error) {
+	row := data.QueryRow(data.AppStting.DSNUser, SELECT_DETAILS, id)
+	if row == nil {
+		return nil, errors.New("id is not found")
 	}
-
-	var page int
-	if r.URL.Path != "/" {
-		arr := strings.Split(r.URL.Path, "/")
-		page, _ = strconv.Atoi(arr[len(arr)-1])
+	var g = new(Greeting)
+	if err := row.Scan(&g.Id, &g.Author, &g.Content, &g.PostDate); err != nil {
+		return nil, err
 	}
-	if page < 1 {
-		page = 1
-	}
-	list, err := book.GetList(page-1, 5)
-	if err != nil {
-		serveError(w, err)
-		return
-	}
-	count := book.Count()
-	pager := utils.NewDataPager(page, 5, 5, count, list)
-	pager.LinkHook = func(page int) string {
-		return fmt.Sprintf("/%d", page)
-	}
-	listPage, err := loadPage("book")
-	if err != nil {
-		serveError(w, err)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := listPage.Execute(w, pager); err != nil {
-		serveError(w, err)
-	}
+	return g, nil
 }
 
-func HandleDetails(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
-		return
+func Count() int {
+	row := data.QueryRow(data.AppStting.DSNUser, SELECT_COUNT_GUESTBOOK)
+	if row == nil {
+		return 0
 	}
-	arr := strings.Split(r.URL.Path, "/")
-	id, err := strconv.Atoi(arr[len(arr)-1])
-	if err != nil {
-		w.Write([]byte("id is not a number"))
-		return
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return 0
 	}
-	details, err := book.GetDetails(id)
-	if err != nil {
-		serveError(w, err)
-		return
-	}
-	detailsPage, err := loadPage("details")
-	if err != nil {
-		serveError(w, err)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := detailsPage.Execute(w, details); err != nil {
-		serveError(w, err)
-	}
+	return count
 }
 
-func HandleSign(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		serve404(w)
-		return
+func Comment(g *Greeting) error {
+	tx, err := data.Begin(data.AppStting.DSNUser)
+	if err != nil {
+		return err
 	}
-	if err := r.ParseForm(); err != nil {
-		serveError(w, err)
-		return
+	stmt, err := tx.Prepare(INSERT_GUESTBOOK)
+	if err != nil {
+		return err
 	}
-	info := &book.Greeting{
-		Author:   strings.TrimSpace(r.FormValue("author")),
-		Content:  strings.TrimSpace(r.FormValue("content")),
-		PostDate: time.Now(),
+	defer stmt.Close()
+	res, err := stmt.Exec(g.Author, g.Content, g.PostDate)
+	if err != nil {
+		return err
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if len(info.Author) == 0 || len(info.Content) == 0 {
-		w.Write([]byte("author or content can't be empty"))
-		return
+	id, err := res.LastInsertId()
+	if err != nil {
+		tx.Rollback()
+		return err
 	}
-	if err := book.Comment(info); err != nil {
-		serveError(w, err)
-	} else {
-		logger.Write(strconv.Itoa(info.Id))
-		http.Redirect(w, r, "/", http.StatusFound)
-	}
+	tx.Commit()
+	g.Id = int(id)
+	return nil
 }
 
-func HandleDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
-		return
-	}
-	arr := strings.Split(r.URL.Path, "/")
-	id, err := strconv.Atoi(arr[len(arr)-1])
+func Create(g *Greeting) error {
+	id, err := data.ExecInsertId(data.AppStting.DSNUser,
+		INSERT_GUESTBOOK, g.Author, g.Content, g.PostDate)
 	if err != nil {
-		serveError(w, err)
-		return
+		return err
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte("without the permission of the operation " + strconv.Itoa(id)))
-	/*if err := book.Delete(id); err != nil {
-		serveError(w, err)
-	} else {
-		http.Redirect(w, r, "/", http.StatusFound)
-	}*/
+	g.Id = int(id)
+	return nil
+}
+
+func Delete(id int) error {
+	_, err := data.Exec(data.AppStting.DSNUser, DELETE_GUESTBOOK, id)
+	if err != nil {
+		return err
+	}
+	//n := res.RowsAffected()
+	return nil
 }

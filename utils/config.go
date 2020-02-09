@@ -27,3 +27,7 @@ func GetSetting() *Setting {
 
 	return &Setting{driver, dsnUser, dsnData}
 }
+
+func init() {
+	flag.Parse()
+}
