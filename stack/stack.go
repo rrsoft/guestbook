@@ -6,21 +6,21 @@ import (
 )
 
 type Stack struct {
-	sync.Mutex // protects data
+	mu sync.Mutex // protects data
 	count int
 	data  []interface{}
 }
 
 func (s *Stack) Push(obj interface{}) {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.data = append(s.data, obj)
 	s.count++
 }
 
 func (s *Stack) Pop() interface{} {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.count > 0 {
 		s.count--
 		ret := s.data[s.count]
@@ -31,8 +31,8 @@ func (s *Stack) Pop() interface{} {
 }
 
 func (s *Stack) Peek() interface{} {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.count > 0 {
 		return s.data[s.count-1]
 	}
@@ -40,8 +40,8 @@ func (s *Stack) Peek() interface{} {
 }
 
 func (s *Stack) Clear() {
-	s.Lock()
-	defer s.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.data = s.data[0:0]
 	s.count = 0
 }
