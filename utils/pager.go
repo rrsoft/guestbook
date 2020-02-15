@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"bytes"
 	"strconv"
+	"strings"
 )
 
 type Pager struct {
@@ -17,9 +17,9 @@ func NewPager(pageIndex, pageSize, pageNumCount, totalRecord int) *Pager {
 	if pageNumCount == 0 {
 		pageNumCount = 10
 	}
-	totalPage := totalRecord / pageSize
+	totalPage := totalRecord / pageSize // math.Ceil(x)
 	if totalRecord%pageSize > 0 {
-		totalPage += 1
+		totalPage++
 	}
 
 	pageNumStart, pageNumEnd := getPageNum(pageIndex, pageNumCount, totalPage)
@@ -102,33 +102,34 @@ func (pager *Pager) ToHtml() string {
 	if pager.LinkHook == nil {
 		return ""
 	}
-	var buffer bytes.Buffer
-	buffer.WriteString(`<ul class="` + pager.PageCss + `">`)
+	var builder strings.Builder
+	// var buffer bytes.Buffer 也可以的，1.10后用上面更好
+	builder.WriteString(`<ul class="` + pager.PageCss + `">`)
 	if pager.PageIndex > 1 {
-		buffer.WriteString(`<li><a href="` + pager.LinkHook(1) + `">««</a></li>`)
-		buffer.WriteString(`<li><a href="` + pager.LinkHook(pager.GetPrePage()) + `" rel="prev">«</a></li>`)
+		builder.WriteString(`<li><a href="` + pager.LinkHook(1) + `">««</a></li>`)
+		builder.WriteString(`<li><a href="` + pager.LinkHook(pager.GetPrePage()) + `" rel="prev">«</a></li>`)
 	} else {
-		buffer.WriteString(`<li class="disabled"><a>««</a></li>`)
-		buffer.WriteString(`<li class="disabled"><a rel="prev">«</a></li>`)
+		builder.WriteString(`<li class="disabled"><a>««</a></li>`)
+		builder.WriteString(`<li class="disabled"><a rel="prev">«</a></li>`)
 	}
 	if pager.PageNumCount > 0 {
 		for i := pager.PageNumStart; i <= pager.PageNumEnd; i++ {
 			if pager.PageIndex == i {
-				buffer.WriteString(`<li class="active"><a>` + strconv.Itoa(i) + `</a></li>`)
+				builder.WriteString(`<li class="active"><a>` + strconv.Itoa(i) + `</a></li>`)
 			} else {
-				buffer.WriteString(`<li><a href="` + pager.LinkHook(i) + `">` + strconv.Itoa(i) + `</a></li>`)
+				builder.WriteString(`<li><a href="` + pager.LinkHook(i) + `">` + strconv.Itoa(i) + `</a></li>`)
 			}
 		}
 	}
 	if pager.PageIndex == pager.TotalPage {
-		buffer.WriteString(`<li class="disabled" rel="next"><a>»</a></li>`)
-		buffer.WriteString(`<li class="disabled"><a>»»</a></li>`)
+		builder.WriteString(`<li class="disabled" rel="next"><a>»</a></li>`)
+		builder.WriteString(`<li class="disabled"><a>»»</a></li>`)
 	} else {
-		buffer.WriteString(`<li><a href="` + pager.LinkHook(pager.GetNextPage()) + `" rel="next">»</a></li>`)
-		buffer.WriteString(`<li><a href="` + pager.LinkHook(pager.TotalPage) + `">»»</a></li>`)
+		builder.WriteString(`<li><a href="` + pager.LinkHook(pager.GetNextPage()) + `" rel="next">»</a></li>`)
+		builder.WriteString(`<li><a href="` + pager.LinkHook(pager.TotalPage) + `">»»</a></li>`)
 	}
-	buffer.WriteString(`</ul>`)
-	return buffer.String()
+	builder.WriteString(`</ul>`)
+	return builder.String()
 }
 
 // 生成分页导航HTML

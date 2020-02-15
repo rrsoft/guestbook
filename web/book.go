@@ -36,6 +36,7 @@ func loadPage(title string) (*template.Template, error) {
 	return template.Must(template.New(title).Parse(body))*/
 }
 
+// page从1开始
 func HandleMainPage(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		serve404(w)
@@ -108,7 +109,7 @@ func HandleSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := &core.Greeting{
-		Author:   strings.TrimSpace(r.PostFormValue("author")),// FormValue
+		Author:   strings.TrimSpace(r.PostFormValue("author")), // FormValue
 		Content:  strings.TrimSpace(r.PostFormValue("content")),
 		PostDate: time.Now(),
 	}

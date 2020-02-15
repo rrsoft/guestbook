@@ -22,6 +22,7 @@ var (
 	DELETE_GUESTBOOK       = "DELETE FROM `guestbook` WHERE `id`=?"
 )
 
+// page从0开始
 func GetList(page, size int) ([]*Greeting, error) {
 	rows, err := data.Query(data.AppStting.DSNUser, SELECT_GUESTBOOK_LIST, page*size, size)
 	if err != nil {

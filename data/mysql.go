@@ -10,7 +10,7 @@ var (
 	mu  sync.Mutex // protects dbs
 )
 
-func Open(dsn string) (*sql.DB, error) {
+func open(dsn string) (*sql.DB, error) {
 	mu.Lock()
 	defer mu.Unlock()
 	db, ok := dbs[dsn]
@@ -23,6 +23,13 @@ func Open(dsn string) (*sql.DB, error) {
 		dbs[dsn] = db
 	}
 	return db, nil
+}
+
+func Open(dsn string) (*sql.DB, error) {
+	if db, ok := dbs[dsn]; ok {
+		return db, nil
+	}
+	return open(dsn)
 }
 
 func Close() error {
