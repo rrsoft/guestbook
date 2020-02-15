@@ -3,8 +3,6 @@ package data
 import (
 	"database/sql"
 	"sync"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -17,7 +15,8 @@ func Open(dsn string) (*sql.DB, error) {
 	defer mu.Unlock()
 	db, ok := dbs[dsn]
 	if !ok {
-		db, err := sql.Open(AppStting.Driver, dsn)
+		var err error
+		db, err = sql.Open(AppStting.Driver, dsn)
 		if err != nil {
 			return nil, err
 		}

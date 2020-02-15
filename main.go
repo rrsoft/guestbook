@@ -6,6 +6,8 @@ import (
 
 	"github.com/rrsoft/guestbook/data"
 	"github.com/rrsoft/guestbook/web"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
