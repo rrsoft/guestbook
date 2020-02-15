@@ -108,8 +108,8 @@ func HandleSign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := &core.Greeting{
-		Author:   strings.TrimSpace(r.FormValue("author")),
-		Content:  strings.TrimSpace(r.FormValue("content")),
+		Author:   strings.TrimSpace(r.PostFormValue("author")),// FormValue
+		Content:  strings.TrimSpace(r.PostFormValue("content")),
 		PostDate: time.Now(),
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

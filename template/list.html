@@ -12,8 +12,8 @@
     于 <em>{{.PostDate.Format "2006-01-02 15:04:05"}}</em> -- <a href="/details/{{.Id}}">查看</a> -- <a href="/delete/{{.Id}}">删除</a>
     <pre>{{.Content|html}}</pre>
     {{end}}
-    <form action="/sign" method="post">
-        <div>留言：<textarea id="content" name="content" rows="3" cols="60"></textarea></div>
+    <form action="/sign" method="post" autocomplete="off">
+        <div>留言：<textarea id="content" name="content" rows="5" cols="120"></textarea></div>
         <div>姓名：<input id="author" name="author" type="text" />&nbsp;
         <input type="submit" name="submit" value="Sign Guestbook" /></div>
     </form>
