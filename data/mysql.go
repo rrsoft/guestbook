@@ -3,28 +3,30 @@ package data
 import (
 	"database/sql"
 	"sync"
+
+	"github.com/rrsoft/guestbook/utils"
 )
 
 var (
-	dbs = make(map[string]*sql.DB)
 	mu  sync.Mutex // protects dbs
+	dbs = make(map[string]*sql.DB)
 )
 
-func open(dsn string) (*sql.DB, error) {
+func open(dsn string) (db *sql.DB, err error) {
 	mu.Lock()
 	defer mu.Unlock()
-	db, ok := dbs[dsn]
-	if !ok {
-		var err error
-		db, err = sql.Open(AppStting.Driver, dsn)
-		if err != nil {
-			return nil, err
+	var ok bool
+	if db, ok = dbs[dsn]; !ok {
+		settings := utils.GetSetting()
+		db, err = sql.Open(settings.Driver, dsn)
+		if err == nil {
+			dbs[dsn] = db
 		}
-		dbs[dsn] = db
 	}
-	return db, nil
+	return
 }
 
+// Open open database connect
 func Open(dsn string) (*sql.DB, error) {
 	if db, ok := dbs[dsn]; ok {
 		return db, nil
@@ -32,6 +34,7 @@ func Open(dsn string) (*sql.DB, error) {
 	return open(dsn)
 }
 
+// Close release database
 func Close() error {
 	mu.Lock()
 	defer mu.Unlock()

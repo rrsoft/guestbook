@@ -2,9 +2,11 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rrsoft/guestbook/data"
+	"github.com/rrsoft/guestbook/utils"
 )
 
 type Greeting struct {
@@ -22,9 +24,10 @@ var (
 	DELETE_GUESTBOOK       = "DELETE FROM `guestbook` WHERE `id`=?"
 )
 
-// page从0开始
+// GetList 留言分页  page从0开始
 func GetList(page, size int) ([]*Greeting, error) {
-	rows, err := data.Query(data.AppStting.DSNUser, SELECT_GUESTBOOK_LIST, page*size, size)
+	settings := utils.GetSetting()
+	rows, err := data.Query(settings.DSNUser, SELECT_GUESTBOOK_LIST, page*size, size)
 	if err != nil {
 		return nil, err
 	}
@@ -40,8 +43,10 @@ func GetList(page, size int) ([]*Greeting, error) {
 	return res, nil
 }
 
+// GetDetails 留言详情
 func GetDetails(id int) (*Greeting, error) {
-	row := data.QueryRow(data.AppStting.DSNUser, SELECT_DETAILS, id)
+	settings := utils.GetSetting()
+	row := data.QueryRow(settings.DSNUser, SELECT_DETAILS, id)
 	if row == nil {
 		return nil, errors.New("id is not found")
 	}
@@ -52,8 +57,10 @@ func GetDetails(id int) (*Greeting, error) {
 	return g, nil
 }
 
+// Count 留言数量
 func Count() int {
-	row := data.QueryRow(data.AppStting.DSNUser, SELECT_COUNT_GUESTBOOK)
+	settings := utils.GetSetting()
+	row := data.QueryRow(settings.DSNUser, SELECT_COUNT_GUESTBOOK)
 	if row == nil {
 		return 0
 	}
@@ -64,8 +71,10 @@ func Count() int {
 	return count
 }
 
+// Comment 发表留言-事务
 func Comment(g *Greeting) error {
-	tx, err := data.Begin(data.AppStting.DSNUser)
+	settings := utils.GetSetting()
+	tx, err := data.Begin(settings.DSNUser)
 	if err != nil {
 		return err
 	}
@@ -79,30 +88,32 @@ func Comment(g *Greeting) error {
 		return err
 	}
 	id, err := res.LastInsertId()
-	if err != nil {
+	if err == nil {
+		tx.Commit()
+		g.Id = int(id)
+	} else {
 		tx.Rollback()
-		return err
 	}
-	tx.Commit()
-	g.Id = int(id)
-	return nil
+	return err
 }
 
+// Create 发表留言
 func Create(g *Greeting) error {
-	id, err := data.ExecInsertId(data.AppStting.DSNUser,
-		INSERT_GUESTBOOK, g.Author, g.Content, g.PostDate)
-	if err != nil {
-		return err
+	settings := utils.GetSetting()
+	id, err := data.ExecInsertId(settings.DSNUser, INSERT_GUESTBOOK, g.Author, g.Content, g.PostDate)
+	if err == nil {
+		g.Id = int(id)
 	}
-	g.Id = int(id)
-	return nil
+	return err
 }
 
+// Delete 删除留言
 func Delete(id int) error {
-	_, err := data.Exec(data.AppStting.DSNUser, DELETE_GUESTBOOK, id)
-	if err != nil {
-		return err
+	settings := utils.GetSetting()
+	res, err := data.Exec(settings.DSNUser, DELETE_GUESTBOOK, id)
+	if err == nil {
+		n, _ := res.RowsAffected()
+		fmt.Println(n)
 	}
-	//n := res.RowsAffected()
-	return nil
+	return err
 }

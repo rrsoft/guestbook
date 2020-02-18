@@ -2,30 +2,48 @@ package utils
 
 import (
 	"flag"
+	"fmt"
+	"sync"
 
 	"github.com/robfig/config"
 )
 
 var (
-	MYSQL_SECTION = "MYSQL"
-	CONF_FILE     = flag.String("confFile", "conf/app.conf", "General configuration file")
-	//MYSQL_DSN_DATA = "root:923923924@tcp(127.0.0.1:3306)/mydb?charset=utf8&parseTime=true&loc=Local"
+	configFile   = flag.String("conf_file", "conf/app.conf", "General configuration file")
+	mysqlSection = "MYSQL"
+
+	mu         sync.Mutex // protects settings
+	appSetting *Setting
 )
 
+// Setting 应用配置
 type Setting struct {
 	Driver  string
 	DSNUser string
 	DSNData string
 }
 
+func getSetting() *Setting {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if appSetting == nil {
+		c, _ := config.ReadDefault(*configFile)
+		driver, _ := c.String(config.DEFAULT_SECTION, "mysql_driver")
+		dsnUser, _ := c.String(mysqlSection, "dsn_user")
+		dsnData, _ := c.String(mysqlSection, "dsn_data")
+		appSetting = &Setting{driver, dsnUser, dsnData}
+		fmt.Println("app setting：", appSetting)
+	}
+	return appSetting
+}
+
+// GetSetting 获取应用配置
 func GetSetting() *Setting {
-	c, _ := config.ReadDefault(*CONF_FILE)
-
-	driver, _ := c.String(config.DEFAULT_SECTION, "mysql_driver")
-	dsnUser, _ := c.String(MYSQL_SECTION, "dsn_user")
-	dsnData, _ := c.String(MYSQL_SECTION, "dsn_data")
-
-	return &Setting{driver, dsnUser, dsnData}
+	if appSetting != nil {
+		return appSetting
+	}
+	return getSetting()
 }
 
 func init() {
