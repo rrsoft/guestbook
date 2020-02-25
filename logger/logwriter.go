@@ -23,14 +23,15 @@ func WriteTo(filename, s string) error {
 	return std.Output(2, s)
 }
 
-func WriteLog(filename string, data []byte, perm os.FileMode) error {
-	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, perm)
+func WriteLog(filename string, s string) error {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	n, err := f.Write(data)
+	//n, err := f.Write([]byte(s))
+	n, err := f.WriteString(s)
 	f.Close()
-	if err == nil && n < len(data) {
+	if err == nil && n < len(s) {
 		err = io.ErrShortWrite
 	}
 	return err

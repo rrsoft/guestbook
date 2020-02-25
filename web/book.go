@@ -14,16 +14,19 @@ import (
 	"github.com/rrsoft/guestbook/utils"
 )
 
-func serve404(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte("Not Found"))
+func serve404(w http.ResponseWriter, r *http.Request) {
+	// w.WriteHeader(http.StatusNotFound)
+	// w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	// w.Write([]byte("Not Found"))
+	http.NotFound(w, r)
+}
+
+func serveStatus(w http.ResponseWriter, code int) {
+	http.Error(w, http.StatusText(code), code)
 }
 
 func serveError(w http.ResponseWriter, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Write([]byte(err.Error()))
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
 func loadPage(title string) (*template.Template, error) {
@@ -36,10 +39,10 @@ func loadPage(title string) (*template.Template, error) {
 	return template.Must(template.New(title).Parse(body))*/
 }
 
-// page从1开始
+// HandleMainPage page starting from 1
 func HandleMainPage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
+	if r.Method != http.MethodGet {
+		serveStatus(w, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -72,15 +75,16 @@ func HandleMainPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleDetails(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
+// HandleDetail show message details
+func HandleDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		serveStatus(w, http.StatusMethodNotAllowed)
 		return
 	}
 	arr := strings.Split(r.URL.Path, "/")
 	id, err := strconv.Atoi(arr[len(arr)-1])
 	if err != nil {
-		w.Write([]byte("id is not a number"))
+		serve404(w, r)
 		return
 	}
 	details, err := core.GetDetails(id)
@@ -99,9 +103,10 @@ func HandleDetails(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleSign(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		serve404(w)
+// HandleCommit submit a message
+func HandleCommit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		serveStatus(w, http.StatusMethodNotAllowed)
 		return
 	}
 	if err := r.ParseForm(); err != nil {
@@ -126,9 +131,10 @@ func HandleSign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// HandleDelete delete a message
 func HandleDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		serve404(w)
+	if r.Method != http.MethodGet {
+		serveStatus(w, http.StatusMethodNotAllowed)
 		return
 	}
 	arr := strings.Split(r.URL.Path, "/")
@@ -138,7 +144,7 @@ func HandleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte("without the permission of the operation " + strconv.Itoa(id)))
+	fmt.Fprintf(w, "Without the permission of the delete %d", id)
 	/*if err := book.Delete(id); err != nil {
 		serveError(w, err)
 	} else {

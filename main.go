@@ -13,8 +13,8 @@ import (
 func main() {
 	defer data.Close()
 	http.HandleFunc("/", web.HandleMainPage)
-	http.HandleFunc("/sign", web.HandleSign)
-	http.HandleFunc("/details/", web.HandleDetails)
+	http.HandleFunc("/commit", web.HandleCommit)
+	http.HandleFunc("/detail/", web.HandleDetail)
 	http.HandleFunc("/delete/", web.HandleDelete)
 	err := http.ListenAndServe(":7000", nil)
 	if err != nil {
